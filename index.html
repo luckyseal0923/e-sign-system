@@ -1486,18 +1486,22 @@
       }
 
       // 儲存欄位設定 fields
-      const fieldsData = payload.fields.map(field => ({
-        id: field.id,
-        case_id: caseId,
-        type: field.type,
-        page: field.page,
-        x_ratio: field.xRatio,
-        y_ratio: field.yRatio,
-        w_ratio: field.wRatio,
-        h_ratio: field.hRatio,
-        content: field.content,
-        style: field.style
-      }));
+      const fieldsData = payload.fields.map(field => {
+        const newFieldId = crypto.randomUUID();
+        field.id = newFieldId; // 同步更新記憶體與 Payload 中的 ID
+        return {
+          id: newFieldId,
+          case_id: caseId,
+          type: field.type,
+          page: field.page,
+          x_ratio: field.xRatio,
+          y_ratio: field.yRatio,
+          w_ratio: field.wRatio,
+          h_ratio: field.hRatio,
+          content: field.content,
+          style: field.style
+        };
+      });
 
       if (fieldsData.length > 0) {
         const { error: fieldsError } = await supabase
