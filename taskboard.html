@@ -865,7 +865,10 @@
       const targetCase = casesList.find(item => item.caseId === activeAuthCaseId);
       const authConfig = targetCase ? getCaseAuthConfig(targetCase) : null;
 
-      if (authConfig && staffId === authConfig.staffId && birth === authConfig.birth && password === authConfig.password) {
+      const cleanBirthInput = birth.replace(/[^0-9]/g, '');
+      const cleanBirthDb = authConfig ? authConfig.birth.replace(/[^0-9]/g, '') : '';
+
+      if (authConfig && staffId === authConfig.staffId && cleanBirthInput === cleanBirthDb && password === authConfig.password) {
         verifiedCaseIds.add(activeAuthCaseId);
         closeAuthModal();
         filterCases();
