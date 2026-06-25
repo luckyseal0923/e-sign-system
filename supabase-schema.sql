@@ -80,3 +80,30 @@ CREATE POLICY "Public Select Signature" ON storage.objects FOR SELECT USING (buc
 CREATE POLICY "Public Insert Signature" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'signatures');
 CREATE POLICY "Public Update Signature" ON storage.objects FOR UPDATE USING (bucket_id = 'signatures');
 CREATE POLICY "Public Delete Signature" ON storage.objects FOR DELETE USING (bucket_id = 'signatures');
+
+-- 7. 建立員工/管理員帳號資料表 (users)
+CREATE TABLE IF NOT EXISTS public.users (
+    staff_id text PRIMARY KEY,
+    name text NOT NULL,
+    birth_date text NOT NULL, -- 格式：YYYYMMDD，例如 '19850923'
+    password text NOT NULL,
+    role text NOT NULL DEFAULT 'user', -- 'user' (員工) 或 'admin' (系統管理員)
+    email text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 停用 users 資料表的 RLS
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+
+-- 預設寫入測試資料 (若有衝突則更新)
+INSERT INTO public.users (staff_id, name, birth_date, password, role, email)
+VALUES 
+    ('104114', '測試員工', '19850923', '84384131', 'user', 'user104114@example.com'),
+    ('admin01', '系統管理員', '19800101', 'admin888', 'admin', 'admin@example.com')
+ON CONFLICT (staff_id) DO UPDATE 
+SET name = EXCLUDED.name, 
+    birth_date = EXCLUDED.birth_date, 
+    password = EXCLUDED.password, 
+    role = EXCLUDED.role,
+    email = EXCLUDED.email;
+

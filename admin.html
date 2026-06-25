@@ -3,26 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>E-Sign 個人任務看板</title>
+  <title>E-Sign 後台管理系統</title>
   <!-- 載入 Google Fonts Outfit & Noto Sans TC -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   
   <style>
     :root {
-      --bg-gradient: radial-gradient(circle at 10% 20%, #151829 0%, #0d0e15 90%);
-      --card-bg: rgba(22, 28, 45, 0.65);
+      --bg-gradient: radial-gradient(circle at 10% 20%, #17152b 0%, #0d0a14 90%);
+      --card-bg: rgba(28, 22, 45, 0.65);
       --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover-border: rgba(99, 102, 241, 0.4);
-      --input-bg: rgba(13, 15, 25, 0.8);
+      --card-hover-border: rgba(167, 139, 250, 0.4);
+      --input-bg: rgba(18, 13, 28, 0.8);
       --input-border: rgba(255, 255, 255, 0.12);
       
       --text-main: #f3f4f6;
-      --text-sub: #9ca3af;
-      --text-muted: #6b7280;
+      --text-sub: #cbd5e1;
+      --text-muted: #8b5cf6; /* 紫色強調 */
+      --text-dim: #94a3b8;
       
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-glow: rgba(99, 102, 241, 0.35);
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --primary-glow: rgba(139, 92, 246, 0.35);
       
       --success: #10b981;
       --success-soft: rgba(16, 185, 129, 0.15);
@@ -33,7 +34,7 @@
       --info: #3b82f6;
       --info-soft: rgba(59, 130, 246, 0.15);
       
-      --shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 20px;
@@ -56,7 +57,7 @@
       position: relative;
     }
 
-    /* 炫光背景效果 */
+    /* 炫光背景效果 - 管理後台採用深紫與深紅 */
     .glow-bg {
       position: fixed;
       inset: 0;
@@ -68,8 +69,8 @@
     .glow-circle {
       position: absolute;
       border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.18;
+      filter: blur(130px);
+      opacity: 0.16;
     }
 
     .glow-circle-1 {
@@ -77,7 +78,7 @@
       right: -10%;
       width: 50vw;
       height: 50vw;
-      background: #6366f1;
+      background: #8b5cf6;
       animation: float-slow 20s infinite alternate;
     }
 
@@ -86,13 +87,13 @@
       left: -10%;
       width: 45vw;
       height: 45vw;
-      background: #d946ef;
+      background: #ec4899;
       animation: float-slow 25s infinite alternate-reverse;
     }
 
     @keyframes float-slow {
       0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(5%, 8%) scale(1.1); }
+      100% { transform: translate(6%, 5%) scale(1.15); }
     }
 
     .hidden {
@@ -100,147 +101,9 @@
     }
 
     /* ==========================================
-       1. 登入介面 (Login View)
+       後台版面配置
        ========================================== */
-    .login-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px;
-    }
-
-    .login-card {
-      width: 100%;
-      max-width: 460px;
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      padding: 40px;
-      transition: transform 0.3s, border-color 0.3s;
-    }
-
-    .login-card:hover {
-      border-color: rgba(99, 102, 241, 0.25);
-    }
-
-    .brand-section {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .logo-icon {
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, var(--primary) 0%, #a78bfa 100%);
-      border-radius: var(--radius-md);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 28px;
-      font-weight: 800;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-    }
-
-    .brand-title {
-      font-size: 24px;
-      font-weight: 800;
-      background: linear-gradient(to right, #ffffff, #c7d2fe);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
-    }
-
-    .brand-subtitle {
-      font-size: 14px;
-      color: var(--text-sub);
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-sub);
-      margin-bottom: 8px;
-      letter-spacing: 0.5px;
-    }
-
-    .input-wrapper {
-      position: relative;
-    }
-
-    .input-field {
-      width: 100%;
-      background: var(--input-bg);
-      border: 1px solid var(--input-border);
-      border-radius: var(--radius-md);
-      padding: 12px 16px;
-      font-size: 14px;
-      color: var(--text-main);
-      transition: all 0.25s;
-    }
-
-    .input-field:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-glow);
-      outline: none;
-    }
-
-    .login-btn {
-      width: 100%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-md);
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.25s;
-      box-shadow: 0 4px 12px var(--primary-glow);
-      margin-top: 10px;
-    }
-
-    .login-btn:hover {
-      background: var(--primary-hover);
-      box-shadow: 0 6px 16px var(--primary-glow);
-      transform: translateY(-1px);
-    }
-
-    .login-error {
-      background: var(--danger-soft);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      color: #fca5a5;
-      padding: 12px 16px;
-      border-radius: var(--radius-md);
-      font-size: 13px;
-      margin-bottom: 20px;
-      line-height: 1.5;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .login-footer {
-      text-align: center;
-      margin-top: 32px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* ==========================================
-       2. 看板主介面 (Dashboard View)
-       ========================================== */
-    .dashboard-layout {
+    .admin-layout {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -250,7 +113,7 @@
       margin: 0 auto;
     }
 
-    /* 頂部控制列 */
+    /* 頂部導覽列 */
     .topbar {
       display: flex;
       justify-content: space-between;
@@ -260,18 +123,33 @@
       flex-wrap: wrap;
     }
 
-    .dashboard-title-group h1 {
+    .admin-title-group h1 {
       font-size: 28px;
       font-weight: 800;
       margin-bottom: 6px;
-      background: linear-gradient(135deg, #ffffff 30%, #c7d2fe 100%);
+      background: linear-gradient(135deg, #ffffff 30%, #ddd6fe 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .dashboard-title-group p {
+    .admin-badge {
+      font-size: 11px;
+      background: var(--danger-soft);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 2px 8px;
+      border-radius: 4px;
+      vertical-align: middle;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .admin-title-group p {
       font-size: 14px;
-      color: var(--text-sub);
+      color: var(--text-dim);
     }
 
     .topbar-actions {
@@ -294,9 +172,9 @@
     .user-status-dot {
       width: 8px;
       height: 8px;
-      background: var(--success);
+      background: #ef4444; /* 管理員以紅色指示 */
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--success);
+      box-shadow: 0 0 8px #ef4444;
     }
 
     .btn-action {
@@ -356,7 +234,7 @@
     }
 
     .summary-label {
-      color: var(--text-sub);
+      color: var(--text-dim);
       font-size: 13px;
       font-weight: 500;
       margin-bottom: 12px;
@@ -369,18 +247,18 @@
       font-weight: 800;
       margin-bottom: 8px;
       line-height: 1;
-      background: linear-gradient(to right, #fff, #c7d2fe);
+      background: linear-gradient(to right, #fff, #ddd6fe);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .summary-note {
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--text-dim);
       line-height: 1.5;
     }
 
-    /* 看板大容器 */
+    /* 管理看板主面 */
     .panel {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -413,7 +291,7 @@
     }
 
     .search-input {
-      min-width: 260px;
+      min-width: 320px;
       background: var(--input-bg);
       border: 1px solid var(--input-border);
       border-radius: var(--radius-sm);
@@ -455,7 +333,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 980px;
+      min-width: 1020px;
     }
 
     th, td {
@@ -469,7 +347,7 @@
     th {
       font-size: 12px;
       font-weight: 700;
-      color: var(--text-sub);
+      color: var(--text-dim);
       text-transform: uppercase;
       letter-spacing: 0.8px;
       background: rgba(255, 255, 255, 0.02);
@@ -496,6 +374,17 @@
       font-size: 13px;
     }
 
+    .staff-badge {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+
     /* 狀態標籤 */
     .pill {
       display: inline-flex;
@@ -512,7 +401,7 @@
     .pill.signing { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.25); }
     .pill.done { background: var(--success-soft); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.25); }
     .pill.cancel { background: var(--danger-soft); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.25); }
-    .pill.pending { background: rgba(255, 255, 255, 0.08); color: var(--text-sub); }
+    .pill.pending { background: rgba(255, 255, 255, 0.08); color: var(--text-dim); }
 
     /* 進度條 */
     .progress-box {
@@ -524,7 +413,7 @@
       justify-content: space-between;
       gap: 8px;
       font-size: 11px;
-      color: var(--text-sub);
+      color: var(--text-dim);
       margin-bottom: 6px;
     }
 
@@ -568,19 +457,44 @@
     }
 
     .mini-btn.btn-expand {
-      background: rgba(99, 102, 241, 0.1);
-      border-color: rgba(99, 102, 241, 0.15);
-      color: #a5b4fc;
+      background: rgba(139, 92, 246, 0.1);
+      border-color: rgba(139, 92, 246, 0.15);
+      color: #c084fc;
     }
 
     .mini-btn.btn-expand:hover {
       background: var(--primary);
       border-color: var(--primary);
       color: #fff;
-      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
+      box-shadow: 0 4px 10px rgba(139, 92, 246, 0.25);
     }
 
-    /* 子任務下拉細節 */
+    .mini-btn.btn-close-case {
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.06);
+    }
+
+    .mini-btn.btn-close-case:hover {
+      background: #f59e0b;
+      color: #000;
+      border-color: #f59e0b;
+    }
+
+    .mini-btn.btn-delete-case {
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.06);
+    }
+
+    .mini-btn.btn-delete-case:hover {
+      background: #ef4444;
+      color: #fff;
+      border-color: #ef4444;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+    }
+
+    /* 子任務細節 */
     .child-row {
       background: rgba(255, 255, 255, 0.01);
     }
@@ -625,7 +539,7 @@
 
     .child-code {
       font-size: 11px;
-      color: var(--text-muted);
+      color: var(--text-dim);
       font-family: monospace;
       word-break: break-all;
     }
@@ -637,7 +551,7 @@
 
     .child-meta {
       font-size: 12px;
-      color: var(--text-sub);
+      color: var(--text-dim);
     }
 
     .child-actions {
@@ -648,7 +562,7 @@
 
     .empty {
       text-align: center;
-      color: var(--text-sub);
+      color: var(--text-dim);
       padding: 48px 20px;
       font-size: 14px;
     }
@@ -688,7 +602,7 @@
     }
 
     @media (max-width: 900px) {
-      .dashboard-layout {
+      .admin-layout {
         padding: 20px;
       }
       .summary-grid {
@@ -723,63 +637,18 @@
     <div class="glow-circle glow-circle-2"></div>
   </div>
 
-  <!-- 1. 登入區塊 (Login Area) -->
-  <div class="login-wrapper" id="loginWrapper">
-    <div class="login-card">
-      <div class="brand-section">
-        <div class="logo-icon">✍️</div>
-        <h2 class="brand-title">遠端簽名佈署系統</h2>
-        <p class="brand-subtitle">同仁個人歷史案件查詢與管理平台</p>
-      </div>
-
-      <div id="loginErrorMsg" class="login-error hidden">
-        <span>⚠️</span>
-        <span id="errorText"></span>
-      </div>
-
-      <form id="loginForm" onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label class="form-label" for="loginStaffId">員工編號</label>
-          <div class="input-wrapper">
-            <input class="input-field" id="loginStaffId" type="text" required placeholder="請輸入員編 (如 104114)">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="loginBirth">出生日期 (8碼)</label>
-          <div class="input-wrapper">
-            <input class="input-field" id="loginBirth" type="text" required placeholder="例如：19850923">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="loginPassword">密碼</label>
-          <div class="input-wrapper">
-            <input class="input-field" id="loginPassword" type="password" required placeholder="請輸入密碼 (如 84384131)">
-          </div>
-        </div>
-
-        <button class="login-btn" type="submit" id="submitLoginBtn">登入驗證</button>
-      </form>
-
-      <div class="login-footer">
-        僅供內部授權人員訪問・E-Sign System © 2026
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. 看板主介面 (Dashboard Area) -->
-  <div class="dashboard-layout hidden" id="dashboardWrapper">
+  <div class="admin-layout" id="adminWrapper">
     <header class="topbar">
-      <div class="dashboard-title-group">
-        <h1>個人歷史案件看板</h1>
-        <p>檢視您發起的歷史案件、追蹤子任務簽署進度及查看簽章結果</p>
+      <div class="admin-title-group">
+        <h1>E-Sign 遠端簽核管理後台 <span class="admin-badge">ADMIN</span></h1>
+        <p>系統管理員全覽看板，監控全院簽核進度、手動結案、刪除案件等特權操作</p>
       </div>
       <div class="topbar-actions">
         <div class="user-profile">
           <div class="user-status-dot"></div>
-          <span id="userNameBadge">載入中...</span>
+          <span id="userNameBadge">系統管理員</span>
         </div>
+        <button class="btn-action" onclick="goToTaskboard()">返回同仁看板</button>
         <button class="btn-action btn-primary-action" onclick="goToCreateCase()">發起新案件</button>
         <button class="btn-action" onclick="handleLogout()">登出</button>
       </div>
@@ -791,9 +660,9 @@
     <!-- 列表面板 -->
     <section class="panel">
       <div class="panel-head">
-        <h2 class="panel-title">我的案件列表</h2>
+        <h2 class="panel-title">全系統案件全覽列表</h2>
         <div class="filters">
-          <input id="searchInput" class="search-input" type="text" placeholder="搜尋案件編號 / 案件名稱">
+          <input id="searchInput" class="search-input" type="text" placeholder="搜尋案件編號 / 案件名稱 / 員編 / 起單人">
           <select id="statusFilter" class="select-filter">
             <option value="">全部狀態</option>
             <option value="已建立">已建立</option>
@@ -809,7 +678,7 @@
           <thead>
             <tr>
               <th>案件資訊</th>
-              <th>起單人</th>
+              <th>起單同仁</th>
               <th>建立時間</th>
               <th>狀態</th>
               <th>簽署進度</th>
@@ -834,10 +703,6 @@
 
     // 儲存狀態變數
     let casesList = [];
-    const loginWrapper = document.getElementById('loginWrapper');
-    const dashboardWrapper = document.getElementById('dashboardWrapper');
-    const loginErrorMsg = document.getElementById('loginErrorMsg');
-    const errorText = document.getElementById('errorText');
     const userNameBadge = document.getElementById('userNameBadge');
     
     const summaryGrid = document.getElementById('summaryGrid');
@@ -845,148 +710,24 @@
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
 
-    // 檢查登入 Session
+    // 檢查登入與角色 Session
     document.addEventListener('DOMContentLoaded', () => {
-      checkSession();
+      checkAdminSession();
     });
 
-    function checkSession() {
+    function checkAdminSession() {
       const staffId = sessionStorage.getItem('user_staff_id');
       const role = sessionStorage.getItem('user_role');
       const name = sessionStorage.getItem('user_name');
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const isViewMode = urlParams.get('view') === '1';
-
-      if (!staffId) {
-        // 未登入，顯示登入區
-        loginWrapper.classList.remove('hidden');
-        dashboardWrapper.classList.add('hidden');
+      if (!staffId || role !== 'admin') {
+        // 未登入或非管理員，強制送回 login (taskboard.html)
+        alert('此頁面僅供管理人員訪問，請先使用管理員帳密登入！');
+        window.location.href = 'taskboard.html';
       } else {
-        // 已登入
-        if (role === 'admin' && !isViewMode) {
-          // 主管管理員導向專屬頁面
-          window.location.href = 'admin.html';
-        } else {
-          // 一般同仁 (或檢視模式下的管理員)，顯示看板區
-          loginWrapper.classList.add('hidden');
-          dashboardWrapper.classList.remove('hidden');
-          userNameBadge.textContent = role === 'admin' ? `${name} (${staffId}) 管理員` : `${name} (${staffId}) 同仁`;
-          
-          if (role === 'admin') {
-            showAdminButton();
-          }
-          
-          loadCasesFromSupabase();
-        }
+        userNameBadge.textContent = `${name} (${staffId}) 管理員`;
+        loadCasesFromSupabase();
       }
-    }
-
-    function showAdminButton() {
-      const actions = document.querySelector('.topbar-actions');
-      if (actions && !document.getElementById('adminPanelBtn')) {
-        const btn = document.createElement('button');
-        btn.id = 'adminPanelBtn';
-        btn.className = 'btn-action';
-        btn.style.borderColor = 'rgba(139, 92, 246, 0.4)';
-        btn.style.color = '#c084fc';
-        btn.innerHTML = '⚙️ 後台管理';
-        btn.onclick = () => { window.location.href = 'admin.html'; };
-        actions.insertBefore(btn, actions.lastElementChild); // insert before logout
-      }
-    }
-
-    // 登入送出處理
-    async function handleLogin(e) {
-      e.preventDefault();
-      
-      const submitBtn = document.getElementById('submitLoginBtn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = '登入驗證中...';
-      loginErrorMsg.classList.add('hidden');
-
-      const staffId = document.getElementById('loginStaffId').value.trim();
-      const birth = document.getElementById('loginBirth').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
-
-      if (!staffId || !birth || !password) {
-        showLoginError('請完整填寫所有欄位。');
-        submitBtn.disabled = false;
-        submitBtn.textContent = '登入驗證';
-        return;
-      }
-
-      try {
-        // 1. 查詢 users 資料表
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('staff_id', staffId)
-          .maybeSingle();
-
-        if (error) {
-          // 判斷是否為資料表不存在的錯誤 (PostgREST PGRST205)
-          if (error.code === 'PGRST205' || error.message.includes('users')) {
-            showLoginError('⚠️ 資料庫尚未完成設定！請將最新的 `supabase-schema.sql` 內容貼至 Supabase SQL Editor 中執行，建立 `users` 資料表與測試資料。');
-          } else {
-            showLoginError(`資料庫連線失敗: ${error.message}`);
-          }
-          submitBtn.disabled = false;
-          submitBtn.textContent = '登入驗證';
-          return;
-        }
-
-        if (!data) {
-          showLoginError('找不到該員工編號，請重新確認。');
-          submitBtn.disabled = false;
-          submitBtn.textContent = '登入驗證';
-          return;
-        }
-
-        // 2. 比較生日與密碼
-        const cleanBirthInput = birth.replace(/[^0-9]/g, '');
-        const cleanBirthDb = data.birth_date.replace(/[^0-9]/g, '');
-
-        if (cleanBirthInput !== cleanBirthDb) {
-          showLoginError('生日驗證錯誤，格式如 YYYYMMDD（例如 19850923）。');
-          submitBtn.disabled = false;
-          submitBtn.textContent = '登入驗證';
-          return;
-        }
-
-        if (data.password !== password) {
-          showLoginError('密碼錯誤，請重新輸入。');
-          submitBtn.disabled = false;
-          submitBtn.textContent = '登入驗證';
-          return;
-        }
-
-        // 登入驗證通過，寫入 Session 資訊
-        sessionStorage.setItem('user_staff_id', data.staff_id);
-        sessionStorage.setItem('user_name', data.name);
-        sessionStorage.setItem('user_birth_date', data.birth_date);
-        sessionStorage.setItem('user_password', data.password);
-        sessionStorage.setItem('user_role', data.role);
-        sessionStorage.setItem('user_email', data.email || '');
-
-        showToast('驗證成功，導向看板中...');
-        
-        setTimeout(() => {
-          checkSession();
-          submitBtn.disabled = false;
-          submitBtn.textContent = '登入驗證';
-        }, 800);
-
-      } catch (err) {
-        showLoginError(`連線發生異常：${err.message || err}`);
-        submitBtn.disabled = false;
-        submitBtn.textContent = '登入驗證';
-      }
-    }
-
-    function showLoginError(msg) {
-      errorText.textContent = msg;
-      loginErrorMsg.classList.remove('hidden');
     }
 
     // 登出處理
@@ -994,11 +735,22 @@
       sessionStorage.clear();
       showToast('已安全登出');
       setTimeout(() => {
-        checkSession();
+        window.location.href = 'taskboard.html';
       }, 500);
     }
 
-    // 導向起單頁面
+    // 跳轉
+    function goToTaskboard() {
+      // 暫時將 Session 中的 role 改為 user 以免循環跳轉，但為了測試方便，我們只做頁面跳轉
+      // 員工看板會自動判斷如果 session.role 是 admin 則會再轉回 admin.html，所以這裡跳轉要小心。
+      // 為解決這個問題，我們可以直接清除 sessionStorage role，或者在 taskboard.html 的 checkSession 中如果角色是 admin，
+      // 但附帶參數 `mode=view`，則允許檢視。
+      // 最乾淨的方法是：將 role 設成 user，或者就單純返回 taskboard.html 且在 taskboard 中若有 admin 身分，允許他在頂部切換回 admin.html。
+      // 讓我們在 taskboard.html 中實作這段：如果 session.role === 'admin'，但在 url 有 view_mode 的話就不強制跳轉。
+      // 或是直接跳轉到 taskboard.html?view=1。
+      window.location.href = 'taskboard.html?view=1';
+    }
+
     function goToCreateCase() {
       window.location.href = 'index.html';
     }
@@ -1013,20 +765,18 @@
       }
     }
 
-    // 載入 Supabase 案件資料
+    // 載入 Supabase 所有案件資料
     async function loadCasesFromSupabase() {
-      const staffId = sessionStorage.getItem('user_staff_id');
       try {
-        // 一般同仁：僅篩選出 staff_id 等於自己的案件
+        // 管理員：撈取系統中所有人的案件
         const { data: casesData, error: casesError } = await supabase
           .from('cases')
           .select('*')
-          .eq('staff_id', staffId)
           .order('created_at', { ascending: false });
         
         if (casesError) throw casesError;
 
-        // 撈取子任務
+        // 撈取所有子任務
         const { data: childTasksData, error: tasksError } = await supabase
           .from('child_tasks')
           .select('*');
@@ -1129,7 +879,9 @@
         const matchKeyword =
           !keyword ||
           item.caseId.toLowerCase().includes(keyword) ||
-          item.caseName.toLowerCase().includes(keyword);
+          item.caseName.toLowerCase().includes(keyword) ||
+          item.staffId.toLowerCase().includes(keyword) ||
+          item.applicantName.toLowerCase().includes(keyword);
 
         const currentStatus = getDisplayStatus(item);
         const matchStatus = !status || 
@@ -1150,26 +902,29 @@
       const totalPending = totalChild - totalDone;
       const completedCases = list.filter(x => ['簽署完成', '已結案'].includes(getDisplayStatus(x))).length;
 
+      // 計算獨特的起單人數量
+      const activeStaff = new Set(list.map(x => x.staffId)).size;
+
       const cards = [
         {
-          label: '發起案件數',
+          label: '系統總案件數',
           value: totalCases,
-          note: '同仁發起的案件總數，追蹤案件狀態。'
+          note: '全系統中所有同仁發起的案件總量。'
         },
         {
-          label: '子任務簽署總數',
+          label: '合約份數 / 簽署人數量',
           value: totalChild,
-          note: '所有子任務份數總和，每一份皆有專屬網址。'
+          note: `待簽署份數：${totalPending} 份`
         },
         {
-          label: '已完成簽署',
+          label: '已完成簽名',
           value: `${totalDone} 份`,
-          note: `完成率 ${totalChild ? Math.round(totalDone / totalChild * 100) : 0}%`
+          note: `整體完成率 ${totalChild ? Math.round(totalDone / totalChild * 100) : 0}%`
         },
         {
-          label: '已結案案件',
-          value: `${completedCases} 件`,
-          note: `尚有 ${totalPending} 份合約待簽署`
+          label: '起單同仁總數',
+          value: `${activeStaff} 人`,
+          note: `系統內已有 ${completedCases} 件合約結案`
         }
       ];
 
@@ -1182,13 +937,13 @@
       `).join('');
     }
 
-    // 渲染案件列表
+    // 渲染案件列表 (附帶管理功能)
     function renderCases(list) {
       if (!list.length) {
         caseTableBody.innerHTML = `
           <tr>
             <td colspan="6">
-              <div class="empty">您目前尚無相關的案件。</div>
+              <div class="empty">系統中查無符合條件的案件。</div>
             </td>
           </tr>
         `;
@@ -1209,6 +964,7 @@
             </td>
             <td>
               <strong>${item.applicantName}</strong>
+              <div class="staff-badge">員編 ${item.staffId}</div>
             </td>
             <td>${formatDateDisplay(item.createdAt)}</td>
             <td><span class="pill ${getStatusClass(displayStatus)}">${displayStatus}</span></td>
@@ -1225,7 +981,9 @@
             </td>
             <td>
               <div class="row-actions">
-                <button class="mini-btn btn-expand" onclick="toggleChildren('${item.caseId}')">展開子任務</button>
+                <button class="mini-btn btn-expand" onclick="toggleChildren('${item.caseId}')">展開</button>
+                <button class="mini-btn btn-close-case" onclick="closeCase('${item.caseId}')" ${displayStatus === '已結案' ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>結案</button>
+                <button class="mini-btn btn-delete-case" onclick="deleteCase('${item.caseId}')">刪除</button>
               </div>
             </td>
           </tr>
@@ -1267,6 +1025,42 @@
       row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
     }
 
+    // 手動結案
+    async function closeCase(caseId) {
+      if (!confirm(`確定要將案件 ${caseId} 強制結案嗎？`)) return;
+      try {
+        const { error } = await supabase
+          .from('cases')
+          .update({ status: '已結案' })
+          .eq('case_id', caseId);
+        
+        if (error) throw error;
+        showToast(`案件 ${caseId} 已成功結案`);
+        await loadCasesFromSupabase();
+      } catch (err) {
+        console.error(err);
+        showToast(`結案失敗: ${err.message}`);
+      }
+    }
+
+    // 級聯刪除案件
+    async function deleteCase(caseId) {
+      if (!confirm(`⚠️ 警告！確定要刪除案件 ${caseId} 嗎？\n此動作將一併刪除所有配置欄位及子任務簽署紀錄，且無法還原！`)) return;
+      try {
+        const { error } = await supabase
+          .from('cases')
+          .delete()
+          .eq('case_id', caseId);
+        
+        if (error) throw error;
+        showToast(`案件 ${caseId} 已成功刪除`);
+        await loadCasesFromSupabase();
+      } catch (err) {
+        console.error(err);
+        showToast(`刪除失敗: ${err.message}`);
+      }
+    }
+
     // 複製簽署連結到剪貼簿
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text)
@@ -1274,7 +1068,7 @@
         .catch(err => showToast('複製失敗: ' + err));
     }
 
-    // 下載/查看簽章
+    // 查看手寫簽章
     function downloadSignature(signaturePathJson) {
       if (!signaturePathJson || signaturePathJson === 'null') {
         showToast('此子任務尚未簽署，無圖檔可供查看。');
@@ -1294,10 +1088,12 @@
     }
 
     // 綁定到 window 以利 HTML onclick 呼叫
-    window.handleLogin = handleLogin;
     window.handleLogout = handleLogout;
+    window.goToTaskboard = goToTaskboard;
     window.goToCreateCase = goToCreateCase;
     window.toggleChildren = toggleChildren;
+    window.closeCase = closeCase;
+    window.deleteCase = deleteCase;
     window.copyToClipboard = copyToClipboard;
     window.downloadSignature = downloadSignature;
 

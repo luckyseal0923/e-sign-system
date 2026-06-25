@@ -566,6 +566,86 @@
     #toast.show {
       transform: translateX(-50%) translateY(0);
     }
+
+    /* =========================
+       未登入防呆 Modal
+       ========================= */
+    .auth-overlay-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      padding: 24px;
+    }
+
+    .auth-box {
+      width: 100%;
+      max-width: 480px;
+      background: #fff;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      padding: 40px;
+      text-align: center;
+      border: 1px solid var(--border-dark);
+      animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .auth-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .auth-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .auth-description {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .auth-redirect-btn {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .auth-redirect-btn:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* 鎖定唯讀輸入框樣式 */
+    input[readonly], input[disabled], select[disabled] {
+      background-color: #f1f5f9 !important;
+      color: #64748b !important;
+      border-color: #cbd5e1 !important;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -714,6 +794,18 @@
     <div class="overlay" id="overlay"></div>
   </div>
 </main>
+
+<!-- 未登入阻擋 Modal -->
+<div class="auth-overlay-modal hidden" id="indexAuthOverlay">
+  <div class="auth-box">
+    <div class="auth-icon">🔒</div>
+    <div class="auth-title">起單功能受限</div>
+    <div class="auth-description">
+      您尚未登入身分。為確保起單同仁身分之真實性與不可否認性，系統要求您必須先完成同仁身分驗證，才能發起新的簽核案件。
+    </div>
+    <button class="auth-redirect-btn" onclick="window.location.href='taskboard.html'">前往任務看板 / 進行登入</button>
+  </div>
+</div>
 
 <div id="toast">訊息已更新</div>
 
@@ -1603,6 +1695,63 @@
     });
   }
 
+  function checkAuthAndPrefill() {
+    const staffId = sessionStorage.getItem('user_staff_id');
+    const name = sessionStorage.getItem('user_name');
+    const birthDate = sessionStorage.getItem('user_birth_date');
+    const password = sessionStorage.getItem('user_password');
+    const email = sessionStorage.getItem('user_email');
+
+    if (!staffId) {
+      // 顯示阻擋視窗
+      const overlay = document.getElementById('indexAuthOverlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+      }
+      return;
+    }
+
+    // 填寫欄位並鎖定
+    const applicantNameInput = document.getElementById('applicantName');
+    const birthDateInput = document.getElementById('birthDate');
+    const staffIdInput = document.getElementById('staffId');
+    const passwordInput = document.getElementById('password8');
+    const applicantEmailInput = document.getElementById('applicantEmail');
+
+    if (applicantNameInput) {
+      applicantNameInput.value = name || '';
+      applicantNameInput.readOnly = true;
+    }
+    
+    if (birthDateInput && birthDate) {
+      // 生日可能為 YYYYMMDD，需轉為 YYYY-MM-DD 以符合 date input 規範
+      const cleanBirth = birthDate.replace(/[^0-9]/g, '');
+      if (cleanBirth.length === 8) {
+        const formattedDate = `${cleanBirth.slice(0, 4)}-${cleanBirth.slice(4, 6)}-${cleanBirth.slice(6, 8)}`;
+        birthDateInput.value = formattedDate;
+      } else {
+        birthDateInput.value = birthDate;
+      }
+      birthDateInput.disabled = true;
+    }
+
+    if (staffIdInput) {
+      staffIdInput.value = staffId || '';
+      staffIdInput.readOnly = true;
+    }
+
+    if (passwordInput) {
+      passwordInput.value = password || '';
+      passwordInput.readOnly = true;
+    }
+
+    if (applicantEmailInput) {
+      applicantEmailInput.value = email || '';
+      applicantEmailInput.readOnly = true;
+    }
+  }
+
+  checkAuthAndPrefill();
   renderSignerInputs();
   bindEvents();
 </script>
