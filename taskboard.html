@@ -475,9 +475,25 @@
         padding-left:14px;
       }
 
-      .child-item{
-        margin-left:0;
-      }
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:26px;
+      transform:translateX(-50%) translateY(120px);
+      background:#0f172a;
+      color:#fff;
+      padding:12px 18px;
+      border-radius:12px;
+      font-size:13px;
+      box-shadow:var(--shadow);
+      transition:transform .25s ease;
+      z-index:1001;
+      max-width:90vw;
+      text-align:center;
+    }
+
+    .toast.show{
+      transform:translateX(-50%) translateY(0);
     }
   </style>
 </head>
@@ -560,122 +576,13 @@
       </div>
     </div>
   </div>
+  <div class="toast" id="toast">已更新</div>
 
   <script>
-    const demoCases = [
-      {
-        caseId: 'Esign-20260308-001',
-        caseName: '三月公關品簽領單',
-        applicantName: '王小華',
-        createdAt: '2026-03-08 08:20',
-        status: '簽署中',
-        signCount: 5,
-        fieldsCount: 4,
-        staffId: '104114',
-        birthDate: '19850923',
-        password: '84384131',
-        childTasks: [
-          { signId: 'Esign-20260308-001-01', status: '簽署完成', signedAt: '2026-03-08 08:41', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-001-01' },
-          { signId: 'Esign-20260308-001-02', status: '已完成', signedAt: '2026-03-08 08:53', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-001-02' },
-          { signId: 'Esign-20260308-001-03', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-001-03' },
-          { signId: 'Esign-20260308-001-04', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-001-04' },
-          { signId: 'Esign-20260308-001-05', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-001-05' }
-        ]
-      },
-      {
-        caseId: 'Esign-20260308-002',
-        caseName: '教學器材領用簽收單',
-        applicantName: '陳雅婷',
-        createdAt: '2026-03-08 09:05',
-        status: '已完成',
-        signCount: 3,
-        fieldsCount: 3,
-        staffId: '104114',
-        birthDate: '19850923',
-        password: '84384131',
-        childTasks: [
-          { signId: 'Esign-20260308-002-01', status: '已完成', signedAt: '2026-03-08 09:18', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-002-01' },
-          { signId: 'Esign-20260308-002-02', status: '已完成', signedAt: '2026-03-08 09:22', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-002-02' },
-          { signId: 'Esign-20260308-002-03', status: '已完成', signedAt: '2026-03-08 09:35', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-002-03' }
-        ]
-      },
-      {
-        caseId: 'Esign-20260308-003',
-        caseName: '模擬訓練教材簽領單',
-        applicantName: '林哲宇',
-        createdAt: '2026-03-08 09:40',
-        status: '已建立',
-        signCount: 4,
-        fieldsCount: 5,
-        staffId: '104114',
-        birthDate: '19850923',
-        password: '84384131',
-        childTasks: [
-          { signId: 'Esign-20260308-003-01', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-003-01' },
-          { signId: 'Esign-20260308-003-02', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-003-02' },
-          { signId: 'Esign-20260308-003-03', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-003-03' },
-          { signId: 'Esign-20260308-003-04', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-003-04' }
-        ]
-      },
-      {
-        caseId: 'Esign-20260308-004',
-        caseName: '研究設備借用確認單',
-        applicantName: '張智維',
-        createdAt: '2026-03-08 10:10',
-        status: '簽署中',
-        signCount: 6,
-        fieldsCount: 4,
-        staffId: '104114',
-        birthDate: '19850923',
-        password: '84384131',
-        childTasks: [
-          { signId: 'Esign-20260308-004-01', status: '已完成', signedAt: '2026-03-08 10:22', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-004-01' },
-          { signId: 'Esign-20260308-004-02', status: '已完成', signedAt: '2026-03-08 10:28', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-004-02' },
-          { signId: 'Esign-20260308-004-03', status: '已完成', signedAt: '2026-03-08 10:31', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-004-03' },
-          { signId: 'Esign-20260308-004-04', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-004-04' },
-          { signId: 'Esign-20260308-004-05', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-004-05' },
-          { signId: 'Esign-20260308-004-06', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-004-06' }
-        ]
-      },
-      {
-        caseId: 'Esign-20260308-005',
-        caseName: '臨床教學講義簽收表',
-        applicantName: '黃鈺婷',
-        createdAt: '2026-03-08 10:36',
-        status: '已作廢',
-        signCount: 2,
-        fieldsCount: 3,
-        staffId: '104114',
-        birthDate: '19850923',
-        password: '84384131',
-        childTasks: [
-          { signId: 'Esign-20260308-005-01', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-005-01' },
-          { signId: 'Esign-20260308-005-02', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-005-02' }
-        ]
-      },
-      {
-        caseId: 'Esign-20260308-006',
-        caseName: '護理站物資簽領單',
-        applicantName: '蘇怡君',
-        createdAt: '2026-03-08 11:00',
-        status: '簽署中',
-        signCount: 8,
-        fieldsCount: 4,
-        staffId: '104114',
-        birthDate: '19850923',
-        password: '84384131',
-        childTasks: [
-          { signId: 'Esign-20260308-006-01', status: '已完成', signedAt: '2026-03-08 11:11', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-01' },
-          { signId: 'Esign-20260308-006-02', status: '已完成', signedAt: '2026-03-08 11:17', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-02' },
-          { signId: 'Esign-20260308-006-03', status: '已完成', signedAt: '2026-03-08 11:19', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-03' },
-          { signId: 'Esign-20260308-006-04', status: '已完成', signedAt: '2026-03-08 11:25', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-04' },
-          { signId: 'Esign-20260308-006-05', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-05' },
-          { signId: 'Esign-20260308-006-06', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-06' },
-          { signId: 'Esign-20260308-006-07', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-07' },
-          { signId: 'Esign-20260308-006-08', status: '未簽', signedAt: '', signUrl: 'https://esign.demo/sign.html?signId=Esign-20260308-006-08' }
-        ]
-      }
-    ];
+  <script type="module">
+    import { supabase } from './supabase-config.js';
+
+    let casesList = [];
 
     const summaryGrid = document.getElementById('summaryGrid');
     const caseTableBody = document.getElementById('caseTableBody');
@@ -693,6 +600,15 @@
 
     const verifiedCaseIds = new Set();
     let activeAuthCaseId = '';
+
+    function showToast(message){
+      const toast = document.getElementById('toast');
+      if (toast) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2200);
+      }
+    }
 
     function getChildTaskDisplayStatus(task){
       return (task.status === '已完成' || task.status === '簽署完成' || !!task.signedAt) ? '簽署完成' : '待簽署';
@@ -726,7 +642,19 @@
 
     function formatDateDisplay(value){
       if(!value) return '—';
-      return String(value).replace(/-/g, '/');
+      // format iso or other date strings to YYYY/MM/DD HH:mm or YYYY/MM/DD
+      try {
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return String(value).replace(/-/g, '/');
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${y}/${m}/${day} ${h}:${min}`;
+      } catch (e) {
+        return String(value).replace(/-/g, '/');
+      }
     }
 
     function getDisplayStatus(item){
@@ -749,15 +677,15 @@
       return verifiedCaseIds.has(caseId);
     }
 
-    function getActionButtons(item, index){
+    function getActionButtons(item){
       if (!isCaseVerified(item.caseId)) {
         return `<button class="mini-btn primary-action" onclick="openAuthModal('${item.caseId}')">驗證登入</button>`;
       }
 
       return `
-        <button class="mini-btn" onclick="toggleChildren(${index}, '${item.caseId}')">展開子任務</button>
-        <button class="mini-btn">結案</button>
-        <button class="mini-btn">刪除</button>
+        <button class="mini-btn" onclick="toggleChildren('${item.caseId}')">展開子任務</button>
+        <button class="mini-btn" onclick="finishCase('${item.caseId}')">結案</button>
+        <button class="mini-btn" onclick="deleteCase('${item.caseId}')">刪除</button>
       `;
     }
 
@@ -812,7 +740,7 @@
         return;
       }
 
-      caseTableBody.innerHTML = list.map((item, index) => {
+      caseTableBody.innerHTML = list.map((item) => {
         const done = getDoneCount(item);
         const pending = getPendingCount(item);
         const progress = getProgress(item);
@@ -841,7 +769,7 @@
             </td>
             <td>
               <div class="row-actions">
-                ${getActionButtons(item, index)}
+                ${getActionButtons(item)}
               </div>
             </td>
           </tr>
@@ -862,9 +790,9 @@
                         簽署時間：${task.signedAt ? formatDateDisplay(task.signedAt) : '尚未簽署'}
                       </div>
                       <div class="child-actions">
-                        <button class="mini-btn">查看</button>
-                        <button class="mini-btn">複製連結</button>
-                        <button class="mini-btn">下載</button>
+                        <button class="mini-btn" onclick="window.open('${task.signUrl}', '_blank')">查看</button>
+                        <button class="mini-btn" onclick="copyToClipboard('${task.signUrl}')">複製連結</button>
+                        <button class="mini-btn" onclick="downloadSignature('${task.signaturePath}')">下載</button>
                       </div>
                     </div>
                   `).join('')}
@@ -880,7 +808,7 @@
       const keyword = searchInput.value.trim().toLowerCase();
       const status = statusFilter.value;
 
-      const filtered = demoCases.filter(item => {
+      const filtered = casesList.filter(item => {
         const matchKeyword =
           !keyword ||
           item.caseId.toLowerCase().includes(keyword) ||
@@ -896,9 +824,9 @@
       renderCases(filtered);
     }
 
-    function toggleChildren(index, caseId){
-      const item = demoCases[index];
-      if (!item || item.caseId !== caseId || !isCaseVerified(caseId)) {
+    function toggleChildren(caseId){
+      const item = casesList.find(c => c.caseId === caseId);
+      if (!item || !isCaseVerified(caseId)) {
         openAuthModal(caseId);
         return;
       }
@@ -935,13 +863,18 @@
         return;
       }
 
-      const targetCase = demoCases.find(item => item.caseId === activeAuthCaseId);
+      const targetCase = casesList.find(item => item.caseId === activeAuthCaseId);
       const authConfig = targetCase ? getCaseAuthConfig(targetCase) : null;
 
       if (authConfig && staffId === authConfig.staffId && birth === authConfig.birth && password === authConfig.password) {
         verifiedCaseIds.add(activeAuthCaseId);
         closeAuthModal();
         filterCases();
+        
+        // Auto expand after validation
+        setTimeout(() => {
+          toggleChildren(activeAuthCaseId);
+        }, 100);
         return;
       }
 
@@ -949,24 +882,126 @@
       authMessage.className = 'auth-message show';
     }
 
-    function runInlineTests(){
-      console.assert(isCaseVerified('not-exist') === false, '未驗證案件應為 false');
-      const authConfig = getCaseAuthConfig(demoCases[0]);
-      console.assert(authConfig.staffId === '104114', '員編預設值應正確');
-      console.assert(authConfig.birth === '19850923', '生日預設值應正確');
-      console.assert(authConfig.password === '84384131', '密碼預設值應正確');
-      console.assert(getDoneCount(demoCases[0]) === 2, '第一筆簽署完成數應為 2');
-      console.assert(getPendingCount(demoCases[0]) === 3, '第一筆待簽署數應為 3');
-      console.assert(getChildTaskDisplayStatus(demoCases[0].childTasks[0]) === '簽署完成', '已簽任務應顯示簽署完成');
-      console.assert(getChildTaskDisplayStatus(demoCases[0].childTasks[2]) === '待簽署', '未簽任務應顯示待簽署');
-      console.assert(getSignerDisplayName(demoCases[0].childTasks[0], 0) === '王大明', '未設定 signerName 時應顯示虛擬名字');
+    async function loadCasesFromSupabase() {
+      try {
+        const { data: casesData, error: casesError } = await supabase
+          .from('cases')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (casesError) throw casesError;
+
+        const { data: childTasksData, error: tasksError } = await supabase
+          .from('child_tasks')
+          .select('*');
+        
+        if (tasksError) throw tasksError;
+
+        casesList = (casesData || []).map(c => {
+          const childTasks = (childTasksData || [])
+            .filter(t => t.case_id === c.case_id)
+            .sort((a, b) => a.seq - b.seq)
+            .map(t => ({
+              signId: t.sign_id,
+              caseId: t.case_id,
+              seq: t.seq,
+              signerName: t.signer_name,
+              status: t.status,
+              signedAt: t.signed_at,
+              signUrl: `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, 'signtask.html')}?token=${t.access_token}`,
+              signaturePath: t.signature_path
+            }));
+
+          return {
+            caseId: c.case_id,
+            caseName: c.case_name,
+            applicantName: c.applicant_name,
+            createdAt: c.created_at,
+            status: c.status,
+            signCount: c.sign_count,
+            staffId: c.staff_id,
+            birthDate: c.birth_date,
+            password: c.password,
+            childTasks: childTasks
+          };
+        });
+
+        filterCases();
+
+      } catch (err) {
+        console.error(err);
+        showToast(`資料載入失敗: ${err.message}`);
+      }
     }
 
+    async function finishCase(caseId) {
+      if (!confirm(`確定要將案件 ${caseId} 結案嗎？`)) return;
+      try {
+        const { error } = await supabase
+          .from('cases')
+          .update({ status: '已結案' })
+          .eq('case_id', caseId);
+        
+        if (error) throw error;
+        showToast('案件已手動結案');
+        await loadCasesFromSupabase();
+      } catch (err) {
+        console.error(err);
+        showToast(`操作失敗: ${err.message}`);
+      }
+    }
+
+    async function deleteCase(caseId) {
+      if (!confirm(`確定要刪除案件 ${caseId} 嗎？此操作將同時刪除所有欄位與簽署子任務且無法復原！`)) return;
+      try {
+        const { error } = await supabase
+          .from('cases')
+          .delete()
+          .eq('case_id', caseId);
+        
+        if (error) throw error;
+        showToast('案件已成功刪除');
+        await loadCasesFromSupabase();
+      } catch (err) {
+        console.error(err);
+        showToast(`刪除失敗: ${err.message}`);
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text)
+        .then(() => showToast('已複製簽署連結到剪貼簿'))
+        .catch(err => showToast('複製失敗: ' + err));
+    }
+
+    function downloadSignature(signaturePathJson) {
+      if (!signaturePathJson || signaturePathJson === 'null') {
+        showToast('此子任務尚未簽署，無圖檔可供下載。');
+        return;
+      }
+      try {
+        const sigs = JSON.parse(signaturePathJson);
+        const urls = Object.values(sigs);
+        if (urls.length === 0) {
+          showToast('未找到簽名圖檔');
+          return;
+        }
+        urls.forEach(url => window.open(url, '_blank'));
+      } catch (e) {
+        window.open(signaturePathJson, '_blank');
+      }
+    }
+
+    // Bind to window for inline HTML onclick handlers
     window.toggleChildren = toggleChildren;
     window.openAuthModal = openAuthModal;
     window.closeAuthModal = closeAuthModal;
     window.submitAuth = submitAuth;
     window.filterCases = filterCases;
+    window.finishCase = finishCase;
+    window.deleteCase = deleteCase;
+    window.copyToClipboard = copyToClipboard;
+    window.downloadSignature = downloadSignature;
 
     searchInput.addEventListener('input', filterCases);
     statusFilter.addEventListener('change', filterCases);
@@ -976,9 +1011,8 @@
       }
     });
 
-    runInlineTests();
-    renderSummary(demoCases);
-    renderCases(demoCases);
+    // Initial load
+    loadCasesFromSupabase();
   </script>
 </body>
 </html>

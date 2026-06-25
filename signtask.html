@@ -519,6 +519,49 @@
         height:260px;
       }
     }
+
+    /* Dynamic PDF overlays */
+    .stage-wrap {
+      position: relative;
+      background: #fff;
+      box-shadow: var(--shadow-deep);
+      margin: 0 auto;
+    }
+    .field-overlay-box {
+      position: absolute;
+      pointer-events: auto;
+      border: 2px dashed transparent;
+      border-radius: 4px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .field-overlay-box.type-prefill {
+      border-color: var(--success);
+      background: rgba(22, 163, 74, 0.08);
+    }
+    .field-overlay-box.type-txt {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.08);
+    }
+    .field-overlay-box.type-sig {
+      border-color: var(--danger);
+      background: rgba(220, 38, 38, 0.08);
+    }
+    .field-overlay-box.type-sig:hover {
+      background: rgba(220, 38, 38, 0.15);
+    }
+    .field-overlay-box span {
+      padding: 2px 4px;
+      word-break: break-all;
+    }
+    .signature-empty {
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -540,19 +583,19 @@
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">文件名稱</div>
-              <div class="info-value">三月公關品簽領單</div>
+              <div class="info-value" id="docNameVal">三月公關品簽領單</div>
             </div>
             <div class="info-item">
               <div class="info-label">案件編號</div>
-              <div class="info-value">Esign-20260330-001</div>
+              <div class="info-value" id="caseIdVal">Esign-20260330-001</div>
             </div>
             <div class="info-item">
               <div class="info-label">簽署編號</div>
-              <div class="info-value">Esign-20260330-001-03</div>
+              <div class="info-value" id="signIdVal">Esign-20260330-001-03</div>
             </div>
             <div class="info-item">
               <div class="info-label">簽署人</div>
-              <div class="info-value">王大明</div>
+              <div class="info-value" id="signerVal">王大明</div>
             </div>
             <div class="info-item">
               <div class="info-label">目前狀態</div>
@@ -560,7 +603,7 @@
             </div>
             <div class="info-item">
               <div class="info-label">建立時間</div>
-              <div class="info-value">2026/03/30 08:20</div>
+              <div class="info-value" id="createdTimeVal">2026/03/30 08:20</div>
             </div>
           </div>
         </section>
@@ -578,13 +621,18 @@
 
       <section class="workspace">
         <div class="toolbar">
-          <div class="toolbar-left">
-            <span class="pill pending">簽署頁預覽 Demo</span>
+          <div class="toolbar-left" style="display:flex; align-items:center; gap:8px;">
+            <span class="pill pending" id="demoBadge">簽署頁預覽 Demo</span>
             <span class="pill done" id="signStatePill" style="display:none;">已完成簽名</span>
+            <div id="navUi" style="display:none; align-items:center; gap:8px; margin-left:12px;">
+              <button id="prevBtn" class="btn" style="padding:6px 10px;">上一頁</button>
+              <span id="pageInfo" style="font-size:14px; font-weight:700;">1 / 1</span>
+              <button id="nextBtn" class="btn" style="padding:6px 10px;">下一頁</button>
+            </div>
           </div>
           <div class="toolbar-right">
             <button class="btn" id="resetSignatureBtn">清除目前簽名</button>
-            <button class="btn">縮放 100%</button>
+            <button class="btn" id="fitWidthBtn">自動寬度</button>
           </div>
         </div>
 
@@ -704,13 +752,31 @@
 
   <div class="toast" id="toast">已更新</div>
 
-  <script>
-        const docStage = document.getElementById('docStage');
+  <script type="module">
+    import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+    import { supabase } from './supabase-config.js';
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+
+    const state = {
+      signId: null,
+      childTask: null,
+      parentCase: null,
+      fields: [],
+      pdfDoc: null,
+      currPage: 1,
+      currentScale: 1.2,
+      signatures: {}, // maps field.id -> base64 DataURL
+      activeSignatureFieldId: null,
+      isRealCase: false,
+      pdfWidth: 820,
+      pdfHeight: 1080
+    };
+
+    const docStage = document.getElementById('docStage');
     const pdfScaleShell = document.getElementById('pdfScaleShell');
-    const signatureField = document.getElementById('signatureField');
     const signatureModal = document.getElementById('signatureModal');
     const signatureCanvas = document.getElementById('signatureCanvas');
-    const signaturePreview = document.getElementById('signaturePreview');
     const clearCanvasBtn = document.getElementById('clearCanvasBtn');
     const cancelSignBtn = document.getElementById('cancelSignBtn');
     const applySignatureBtn = document.getElementById('applySignatureBtn');
@@ -721,21 +787,36 @@
     const bottomHint = document.getElementById('bottomHint');
     const submitBtn = document.getElementById('submitBtn');
     const toast = document.getElementById('toast');
+    const demoBadge = document.getElementById('demoBadge');
+
+    // Left Panel Elements
+    const docNameVal = document.getElementById('docNameVal');
+    const caseIdVal = document.getElementById('caseIdVal');
+    const signIdVal = document.getElementById('signIdVal');
+    const signerVal = document.getElementById('signerVal');
+    const createdTimeVal = document.getElementById('createdTimeVal');
+
+    // Navigation elements
+    const navUi = document.getElementById('navUi');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageInfo = document.getElementById('pageInfo');
+    const fitWidthBtn = document.getElementById('fitWidthBtn');
 
     const ctx = signatureCanvas.getContext('2d');
     let isDrawing = false;
     let hasDrawn = false;
-    let appliedSignatureDataUrl = '';
+    let appliedSignatureDataUrl = ''; // Fallback for mock
 
     function fitMockPdf() {
       if (!docStage || !pdfScaleShell) return;
 
-      const designWidth = 820;
+      const designWidth = state.pdfWidth || 820;
       const availableWidth = Math.max(280, docStage.clientWidth - 2);
       const scale = Math.min(1, availableWidth / designWidth);
 
       pdfScaleShell.style.transform = `scale(${scale})`;
-      pdfScaleShell.style.height = `${1080 * scale}px`;
+      pdfScaleShell.style.height = `${(state.pdfHeight || 1080) * scale}px`;
     }
 
     function showToast(message){
@@ -755,7 +836,16 @@
       ctx.lineJoin = 'round';
       ctx.strokeStyle = '#111827';
 
-      if (appliedSignatureDataUrl) {
+      const fieldId = state.activeSignatureFieldId;
+      if (state.isRealCase && fieldId && state.signatures[fieldId]) {
+        const image = new Image();
+        image.onload = () => {
+          ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+          ctx.drawImage(image, 0, 0, rect.width, rect.height);
+          hasDrawn = true;
+        };
+        image.src = state.signatures[fieldId];
+      } else if (!state.isRealCase && appliedSignatureDataUrl) {
         const image = new Image();
         image.onload = () => {
           ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
@@ -765,6 +855,7 @@
         image.src = appliedSignatureDataUrl;
       } else {
         ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        hasDrawn = false;
       }
     }
 
@@ -814,17 +905,49 @@
       const rect = signatureCanvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
       hasDrawn = false;
-      appliedSignatureDataUrl = '';
+      
+      const fieldId = state.activeSignatureFieldId;
+      if (state.isRealCase && fieldId) {
+        delete state.signatures[fieldId];
+      } else {
+        appliedSignatureDataUrl = '';
+      }
     }
 
     function clearAppliedSignature(){
-      appliedSignatureDataUrl = '';
-      signaturePreview.innerHTML = '<span class="signature-empty">點此簽名</span>';
-      signStatePill.style.display = 'none';
-      taskStatusBadge.textContent = '待簽署';
-      taskStatusBadge.className = 'pill pending';
-      bottomHint.textContent = '尚未簽名，請點擊 PDF 上的紅色簽名框完成操作。';
-      showToast('已清除簽名');
+      const fieldId = state.activeSignatureFieldId;
+      if (state.isRealCase && fieldId) {
+        delete state.signatures[fieldId];
+        const preview = document.querySelector(`[data-field-id="${fieldId}"]`);
+        if (preview) {
+          preview.innerHTML = '<span class="signature-empty">點此簽名</span>';
+        }
+        checkAllSignaturesDone();
+        showToast('已清除該簽名');
+      } else {
+        appliedSignatureDataUrl = '';
+        const preview = document.getElementById('signaturePreview');
+        if (preview) preview.innerHTML = '<span class="signature-empty">點此簽名</span>';
+        signStatePill.style.display = 'none';
+        taskStatusBadge.textContent = '待簽署';
+        taskStatusBadge.className = 'pill pending';
+        bottomHint.textContent = '尚未簽名，請點擊 PDF 上的紅色簽名框完成操作。';
+        showToast('已清除簽名');
+      }
+    }
+
+    function resetAllSignatures() {
+      if (state.isRealCase) {
+        state.signatures = {};
+        const previews = document.querySelectorAll('.signature-preview');
+        previews.forEach(el => {
+          el.innerHTML = '<span class="signature-empty">點此簽名</span>';
+        });
+        checkAllSignaturesDone();
+        showToast('已清除所有簽名');
+      } else {
+        clearAppliedSignature();
+      }
     }
 
     function applySignature(){
@@ -833,30 +956,414 @@
         return;
       }
 
-      appliedSignatureDataUrl = signatureCanvas.toDataURL('image/png');
-      signaturePreview.innerHTML = `<img src="${appliedSignatureDataUrl}" alt="簽名預覽">`;
-      signStatePill.style.display = 'inline-flex';
-      taskStatusBadge.textContent = '簽署完成';
-      taskStatusBadge.className = 'pill done';
-      bottomHint.textContent = '已完成簽名，可直接送出本次簽署。';
+      const signatureDataUrl = signatureCanvas.toDataURL('image/png');
+      const fieldId = state.activeSignatureFieldId;
+
+      if (state.isRealCase && fieldId) {
+        state.signatures[fieldId] = signatureDataUrl;
+        const preview = document.querySelector(`[data-field-id="${fieldId}"]`);
+        if (preview) {
+          preview.innerHTML = `<img src="${signatureDataUrl}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+        }
+        checkAllSignaturesDone();
+      } else {
+        appliedSignatureDataUrl = signatureDataUrl;
+        const preview = document.getElementById('signaturePreview');
+        if (preview) preview.innerHTML = `<img src="${signatureDataUrl}" alt="簽名預覽">`;
+        signStatePill.style.display = 'inline-flex';
+        taskStatusBadge.textContent = '簽署完成';
+        taskStatusBadge.className = 'pill done';
+        bottomHint.textContent = '已完成簽名，可直接送出本次簽署。';
+      }
       closeSignatureModal();
       showToast('簽名已套用到文件');
     }
 
-    function submitSignature(){
-      if (!appliedSignatureDataUrl) {
-        showToast('請先完成簽名再送出');
-        return;
+    async function submitSignature(){
+      if (state.isRealCase) {
+        // Check if all signature fields are signed
+        const sigFields = state.fields.filter(f => f.type === 'sig');
+        const unsigned = sigFields.filter(f => !state.signatures[f.id]);
+        if (unsigned.length > 0) {
+          showToast('請先完成所有欄位的簽署再送出');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '送出中...';
+        showToast('正在上傳簽章與儲存資料...');
+
+        try {
+          const signatureUrlsMap = {};
+          
+          async function base64ToBlob(base64Data) {
+            const res = await fetch(base64Data);
+            return res.blob();
+          }
+
+          // Upload signature files
+          for (const fieldId of Object.keys(state.signatures)) {
+            const base64 = state.signatures[fieldId];
+            const blob = await base64ToBlob(base64);
+            const filePath = `${state.signId}/${fieldId}.png`;
+            
+            const { data, error } = await supabase.storage
+              .from('signatures')
+              .upload(filePath, blob, {
+                contentType: 'image/png',
+                upsert: true
+              });
+            
+            if (error) {
+              throw new Error(`上傳簽名圖檔失敗: ${error.message}`);
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('signatures')
+              .getPublicUrl(filePath);
+
+            signatureUrlsMap[fieldId] = publicUrl;
+          }
+
+          // Extract text inputs
+          const textInputs = {};
+          document.querySelectorAll('.signer-text-input').forEach(input => {
+            const fId = input.dataset.fieldId;
+            textInputs[fId] = input.value.trim();
+          });
+
+          // Update child task
+          const { error: updateError } = await supabase
+            .from('child_tasks')
+            .update({
+              status: '簽署完成',
+              signed_at: new Date().toISOString(),
+              signature_path: JSON.stringify(signatureUrlsMap),
+              text_inputs: textInputs
+            })
+            .eq('sign_id', state.signId);
+
+          if (updateError) {
+            throw new Error(`更新任務狀態失敗: ${updateError.message}`);
+          }
+
+          // Check siblings to update case status
+          const { data: siblingTasks } = await supabase
+            .from('child_tasks')
+            .select('status')
+            .eq('case_id', state.childTask.case_id);
+
+          const allDone = siblingTasks.every(t => t.status === '已完成' || t.status === '簽署完成');
+          const newCaseStatus = allDone ? '已完成' : '簽署中';
+
+          await supabase
+            .from('cases')
+            .update({ status: newCaseStatus })
+            .eq('case_id', state.childTask.case_id);
+
+          showToast('簽署送出成功！即將前往看板頁');
+          updateStatusBadge('簽署完成');
+
+          setTimeout(() => {
+            window.location.href = `taskboard.html?caseId=${encodeURIComponent(state.childTask.case_id)}`;
+          }, 1500);
+
+        } catch (err) {
+          console.error(err);
+          showToast(`送出失敗: ${err.message}`);
+          submitBtn.disabled = false;
+          submitBtn.textContent = '送出簽署';
+        }
+      } else {
+        if (!appliedSignatureDataUrl) {
+          showToast('請先完成簽名再送出');
+          return;
+        }
+        showToast('簽署送出成功（Demo）');
       }
-      showToast('簽署送出成功（Demo）');
     }
 
-    signatureField.addEventListener('click', openSignatureModal);
+    function checkAllSignaturesDone() {
+      if (!state.isRealCase) return;
+      const sigFields = state.fields.filter(f => f.type === 'sig');
+      if (sigFields.length === 0) return;
+      
+      const allSigned = sigFields.every(f => state.signatures[f.id]);
+      if (allSigned) {
+        signStatePill.style.display = 'inline-flex';
+        taskStatusBadge.textContent = '簽署完成';
+        taskStatusBadge.className = 'pill done';
+        bottomHint.textContent = '已完成簽名，可直接送出本次簽署。';
+      } else {
+        signStatePill.style.display = 'none';
+        taskStatusBadge.textContent = '待簽署';
+        taskStatusBadge.className = 'pill pending';
+        bottomHint.textContent = '尚未簽名，請點擊 PDF 上的紅色簽名框完成操作。';
+      }
+    }
+
+    function updateStatusBadge(status) {
+      taskStatusBadge.textContent = status;
+      if (status === '待簽署' || status === '未簽') {
+        taskStatusBadge.className = 'pill pending';
+        signStatePill.style.display = 'none';
+        bottomHint.textContent = '尚未簽名，請點擊 PDF 上的紅色簽名框完成操作。';
+      } else {
+        taskStatusBadge.className = 'pill done';
+        signStatePill.style.display = 'inline-flex';
+        bottomHint.textContent = '已完成簽名，可直接送出本次簽署。';
+      }
+    }
+
+    function formatDateDisplay(isoString) {
+      if (!isoString) return '—';
+      const d = new Date(isoString);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const h = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${y}/${m}/${day} ${h}:${min}`;
+    }
+
+    async function loadRealCase(identifier) {
+      try {
+        let query = supabase.from('child_tasks').select('*');
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+        
+        if (isUuid) {
+          query = query.eq('access_token', identifier);
+        } else {
+          query = query.eq('sign_id', identifier);
+        }
+
+        const { data: childTask, error: taskError } = await query.single();
+        
+        if (taskError || !childTask) {
+          console.error(taskError);
+          showToast('找不到此簽署任務，顯示虛擬預覽版');
+          return;
+        }
+
+        const { data: parentCase, error: caseError } = await supabase
+          .from('cases')
+          .select('*')
+          .eq('case_id', childTask.case_id)
+          .single();
+        
+        if (caseError || !parentCase) {
+          console.error(caseError);
+          showToast('載入主案件資料失敗');
+          return;
+        }
+
+        const { data: fields, error: fieldsError } = await supabase
+          .from('fields')
+          .select('*')
+          .eq('case_id', childTask.case_id);
+        
+        if (fieldsError) {
+          console.error(fieldsError);
+          showToast('載入欄位配置失敗');
+          return;
+        }
+
+        state.isRealCase = true;
+        state.childTask = childTask;
+        state.parentCase = parentCase;
+        state.fields = fields || [];
+        state.signId = childTask.sign_id;
+
+        // Update left panel
+        docNameVal.textContent = parentCase.case_name;
+        caseIdVal.textContent = parentCase.case_id;
+        signIdVal.textContent = childTask.sign_id;
+        signerVal.textContent = childTask.signer_name;
+        createdTimeVal.textContent = formatDateDisplay(parentCase.created_at);
+        
+        updateStatusBadge(childTask.status);
+
+        demoBadge.textContent = '線上簽署系統';
+        demoBadge.className = 'pill primary';
+
+        if (parentCase.pdf_path) {
+          await renderPdfDoc(parentCase.pdf_path);
+        } else {
+          showToast('無 PDF 檔案連結');
+        }
+
+      } catch (err) {
+        console.error(err);
+        showToast('載入資料發生異常');
+      }
+    }
+
+    async function renderPdfDoc(url) {
+      try {
+        const loadingTask = pdfjsLib.getDocument(url);
+        state.pdfDoc = await loadingTask.promise;
+        
+        // Find page with signature field
+        const sigField = state.fields.find(f => f.type === 'sig');
+        state.currPage = sigField ? sigField.page : 1;
+
+        navUi.style.display = 'flex';
+        await renderPdfPage(state.currPage);
+      } catch (err) {
+        console.error(err);
+        showToast('PDF 載入失敗');
+      }
+    }
+
+    async function renderPdfPage(pageNum) {
+      if (!state.pdfDoc) return;
+      state.currPage = pageNum;
+
+      const page = await state.pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: state.currentScale });
+      
+      pdfScaleShell.innerHTML = '';
+      
+      const stageWrap = document.createElement('div');
+      stageWrap.id = 'stageWrap';
+      stageWrap.className = 'stage-wrap';
+      stageWrap.style.position = 'relative';
+      stageWrap.style.background = '#fff';
+      stageWrap.style.boxShadow = 'var(--shadow-deep)';
+      stageWrap.style.width = `${viewport.width}px`;
+      stageWrap.style.height = `${viewport.height}px`;
+      stageWrap.style.margin = '0 auto';
+      
+      const canvas = document.createElement('canvas');
+      canvas.id = 'pdfCanvas';
+      canvas.style.display = 'block';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      
+      const overlay = document.createElement('div');
+      overlay.id = 'overlay';
+      overlay.className = 'overlay';
+      
+      stageWrap.appendChild(canvas);
+      stageWrap.appendChild(overlay);
+      pdfScaleShell.appendChild(stageWrap);
+      
+      const context = canvas.getContext('2d');
+      await page.render({
+        canvasContext: context,
+        viewport
+      }).promise;
+
+      state.pdfWidth = viewport.width;
+      state.pdfHeight = viewport.height;
+
+      pageInfo.textContent = `${pageNum} / ${state.pdfDoc.numPages}`;
+      prevBtn.disabled = pageNum <= 1;
+      nextBtn.disabled = pageNum >= state.pdfDoc.numPages;
+
+      fitMockPdf();
+      renderOverlayFields(overlay);
+    }
+
+    function renderOverlayFields(overlay) {
+      overlay.innerHTML = '';
+      const pageFields = state.fields.filter(f => f.page === state.currPage);
+      
+      pageFields.forEach((field) => {
+        const box = document.createElement('div');
+        box.className = `field-overlay-box type-${field.type}`;
+        box.style.left = `${field.x_ratio * 100}%`;
+        box.style.top = `${field.y_ratio * 100}%`;
+        box.style.width = `${field.w_ratio * 100}%`;
+        box.style.height = `${field.h_ratio * 100}%`;
+        box.dataset.id = field.id;
+        
+        if (field.type === 'prefill') {
+          const span = document.createElement('span');
+          span.textContent = field.content;
+          if (field.style) {
+            span.style.fontSize = `${field.style.fontSize}px`;
+            span.style.fontWeight = field.style.fontWeight;
+            span.style.color = field.style.color;
+          }
+          box.appendChild(span);
+        } 
+        else if (field.type === 'txt') {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'signer-text-input';
+          input.placeholder = field.content || '請在此輸入文字';
+          input.dataset.fieldId = field.id;
+          input.style.width = '100%';
+          input.style.height = '100%';
+          input.style.border = 'none';
+          input.style.background = 'transparent';
+          input.style.textAlign = 'center';
+          input.style.font = 'inherit';
+          input.style.fontSize = '13px';
+          input.style.fontWeight = '500';
+          
+          if (state.childTask.text_inputs && state.childTask.text_inputs[field.id]) {
+            input.value = state.childTask.text_inputs[field.id];
+          }
+          
+          box.appendChild(input);
+        }
+        else if (field.type === 'sig') {
+          box.style.cursor = 'pointer';
+          const signaturePreview = document.createElement('div');
+          signaturePreview.className = 'signature-preview';
+          signaturePreview.style.width = '100%';
+          signaturePreview.style.height = '100%';
+          signaturePreview.style.display = 'flex';
+          signaturePreview.style.alignItems = 'center';
+          signaturePreview.style.justifyContent = 'center';
+          signaturePreview.style.color = 'var(--danger)';
+          signaturePreview.style.fontWeight = 'bold';
+          signaturePreview.style.fontSize = '14px';
+          signaturePreview.dataset.fieldId = field.id;
+          
+          if (state.signatures[field.id]) {
+            signaturePreview.innerHTML = `<img src="${state.signatures[field.id]}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+          } else if (state.childTask.signature_path) {
+            try {
+              const savedSigs = JSON.parse(state.childTask.signature_path);
+              if (savedSigs && savedSigs[field.id]) {
+                state.signatures[field.id] = savedSigs[field.id];
+                signaturePreview.innerHTML = `<img src="${savedSigs[field.id]}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+              } else {
+                signaturePreview.innerHTML = '<span class="signature-empty">點此簽名</span>';
+              }
+            } catch (e) {
+              state.signatures[field.id] = state.childTask.signature_path;
+              signaturePreview.innerHTML = `<img src="${state.childTask.signature_path}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+            }
+          } else {
+            signaturePreview.innerHTML = '<span class="signature-empty">點此簽名</span>';
+          }
+          
+          box.appendChild(signaturePreview);
+          
+          box.addEventListener('click', () => {
+            state.activeSignatureFieldId = field.id;
+            openSignatureModal();
+          });
+        }
+        
+        overlay.appendChild(box);
+      });
+      
+      checkAllSignaturesDone();
+    }
+
+    // Event listeners
     clearCanvasBtn.addEventListener('click', clearCanvas);
     cancelSignBtn.addEventListener('click', closeSignatureModal);
     applySignatureBtn.addEventListener('click', applySignature);
     clearSignatureBtn.addEventListener('click', clearAppliedSignature);
-    resetSignatureBtn.addEventListener('click', clearAppliedSignature);
+    resetSignatureBtn.addEventListener('click', resetAllSignatures);
     submitBtn.addEventListener('click', submitSignature);
 
     signatureCanvas.addEventListener('mousedown', startDraw);
@@ -881,7 +1388,37 @@
       }
     });
 
-    fitMockPdf();
+    // Paging UI listeners
+    prevBtn.addEventListener('click', () => {
+      if (state.pdfDoc && state.currPage > 1) renderPdfPage(state.currPage - 1);
+    });
+    nextBtn.addEventListener('click', () => {
+      if (state.pdfDoc && state.currPage < state.pdfDoc.numPages) renderPdfPage(state.currPage + 1);
+    });
+    fitWidthBtn.addEventListener('click', () => {
+      if (state.pdfDoc) fitMockPdf();
+    });
+
+    // Kickoff
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const signId = urlParams.get('signId');
+    
+    if (token) {
+      loadRealCase(token);
+    } else if (signId) {
+      loadRealCase(signId);
+    } else {
+      // Mock version compatibility
+      const signatureField = document.getElementById('signatureField');
+      if (signatureField) {
+        signatureField.addEventListener('click', () => {
+          state.activeSignatureFieldId = 'mock';
+          openSignatureModal();
+        });
+      }
+      fitMockPdf();
+    }
   </script>
 </body>
 </html>

@@ -719,6 +719,7 @@
 
 <script type="module">
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+  import { supabase } from './supabase-config.js';
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
 
@@ -727,6 +728,7 @@
   ========================= */
   const state = {
     pdfDoc: null,
+    pdfFile: null,
     currPage: 1,
     currentScale: 1.2,
     fields: [],
@@ -794,12 +796,16 @@
     return `${y}${m}${d}`;
   }
 
-  function generateCaseId() {
+  async function generateCaseId() {
     const today = formatDateYYYYMMDD();
-    const key = `esign-seq-${today}`;
-    const lastSeq = Number(localStorage.getItem(key) || '0') + 1;
-    localStorage.setItem(key, String(lastSeq));
-    return `Esign-${today}-${String(lastSeq).padStart(3, '0')}`;
+    // Query supabase to see how many cases start with Esign-today-
+    const { count, error } = await supabase
+      .from('cases')
+      .select('case_id', { count: 'exact', head: true })
+      .like('case_id', `Esign-${today}-%`);
+    
+    const seq = (count || 0) + 1;
+    return `Esign-${today}-${String(seq).padStart(3, '0')}`;
   }
 
   function generateChildId(caseId, index) {
@@ -970,6 +976,7 @@
   async function loadPdf(file) {
     if (!file) return;
 
+    state.pdfFile = file;
     dom.fileNameEl.textContent = file.name;
     const buffer = await file.arrayBuffer();
     state.pdfDoc = await pdfjsLib.getDocument({ data: buffer }).promise;
@@ -1357,12 +1364,13 @@
 
   function buildCasePayload(caseId, signCount) {
     const form = getFormValues();
-    const baseSignUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, 'sign.html')}`;
+    const baseSignUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, 'signtask.html')}`;
 
     const childTasks = Array.from({ length: signCount }, (_, index) => {
       const seq = index + 1;
       const signId = generateChildId(caseId, seq);
       const signerName = form.signerNames[index];
+      const accessToken = crypto.randomUUID();
 
       return {
         signId,
@@ -1371,7 +1379,8 @@
         signerName,
         status: '未簽',
         signedAt: '',
-        signUrl: `${baseSignUrl}?signId=${encodeURIComponent(signId)}`
+        accessToken,
+        signUrl: `${baseSignUrl}?token=${accessToken}`
       };
     });
 
@@ -1407,24 +1416,141 @@
     `;
   }
 
-  function handleCreateCase() {
+  async function handleCreateCase() {
     const error = validateForm();
     if (error) {
       showToast(error);
       return;
     }
 
-    const { signCount } = getFormValues();
-    const caseId = generateCaseId();
-    const payload = buildCasePayload(caseId, signCount);
+    dom.createCaseBtn.disabled = true;
+    dom.createCaseBtn.textContent = '建立中...';
 
-    saveCaseToLocal(payload);
-    showCreatedCasePreview(caseId, payload.childTasks);
-    showToast(`案件建立成功：${caseId}`);
+    try {
+      const { signCount } = getFormValues();
+      const caseId = await generateCaseId();
+      const payload = buildCasePayload(caseId, signCount);
 
-    setTimeout(() => {
-      window.location.href = `taskboard.html?caseId=${encodeURIComponent(caseId)}`;
-    }, 900);
+      // 上傳檔案至 Supabase Storage
+      const file = state.pdfFile;
+      if (!file) {
+        showToast('請先上傳 PDF 檔案');
+        dom.createCaseBtn.disabled = false;
+        dom.createCaseBtn.textContent = '確認送出，建立案件';
+        return;
+      }
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${caseId}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('pdfs')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        showToast(`PDF 上傳失敗: ${uploadError.message}`);
+        dom.createCaseBtn.disabled = false;
+        dom.createCaseBtn.textContent = '確認送出，建立案件';
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('pdfs')
+        .getPublicUrl(filePath);
+
+      // 儲存至主案件資料表 cases
+      const { error: caseError } = await supabase
+        .from('cases')
+        .insert({
+          case_id: caseId,
+          case_name: payload.caseName,
+          applicant_name: payload.applicantName,
+          birth_date: payload.birthDate,
+          staff_id: payload.staffId,
+          password: payload.password,
+          applicant_email: payload.applicantEmail,
+          sign_count: payload.signCount,
+          file_name: payload.fileName,
+          pdf_path: publicUrl,
+          status: '已建立',
+          created_at: payload.createdAt
+        });
+
+      if (caseError) {
+        showToast(`寫入主案件失敗: ${caseError.message}`);
+        dom.createCaseBtn.disabled = false;
+        dom.createCaseBtn.textContent = '確認送出，建立案件';
+        return;
+      }
+
+      // 儲存欄位設定 fields
+      const fieldsData = payload.fields.map(field => ({
+        id: field.id,
+        case_id: caseId,
+        type: field.type,
+        page: field.page,
+        x_ratio: field.xRatio,
+        y_ratio: field.yRatio,
+        w_ratio: field.wRatio,
+        h_ratio: field.hRatio,
+        content: field.content,
+        style: field.style
+      }));
+
+      if (fieldsData.length > 0) {
+        const { error: fieldsError } = await supabase
+          .from('fields')
+          .insert(fieldsData);
+        if (fieldsError) {
+          showToast(`寫入欄位設定失敗: ${fieldsError.message}`);
+          dom.createCaseBtn.disabled = false;
+          dom.createCaseBtn.textContent = '確認送出，建立案件';
+          return;
+        }
+      }
+
+      // 儲存子任務 child_tasks
+      const childTasksData = payload.childTasks.map(task => ({
+        sign_id: task.signId,
+        case_id: caseId,
+        seq: task.seq,
+        signer_name: task.signerName,
+        status: task.status,
+        signed_at: null,
+        signature_path: null,
+        text_inputs: {},
+        access_token: task.accessToken
+      }));
+
+      const { error: childTasksError } = await supabase
+        .from('child_tasks')
+        .insert(childTasksData);
+
+      if (childTasksError) {
+        showToast(`寫入簽署子任務失敗: ${childTasksError.message}`);
+        dom.createCaseBtn.disabled = false;
+        dom.createCaseBtn.textContent = '確認送出，建立案件';
+        return;
+      }
+
+      // 保留本地備份，雙重保險
+      saveCaseToLocal(payload);
+
+      showCreatedCasePreview(caseId, payload.childTasks);
+      showToast(`案件建立成功：${caseId}`);
+
+      setTimeout(() => {
+        window.location.href = `taskboard.html?caseId=${encodeURIComponent(caseId)}`;
+      }, 1200);
+
+    } catch (err) {
+      console.error(err);
+      showToast(`發生錯誤: ${err.message || err}`);
+      dom.createCaseBtn.disabled = false;
+      dom.createCaseBtn.textContent = '確認送出，建立案件';
+    }
   }
 
   /* =========================
